@@ -2,7 +2,7 @@
 
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2018-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-000000.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-1AAB8B.svg)](#contributing)
 [![Status](https://img.shields.io/badge/status-in%20use-4C9AFF.svg)](#roadmap)
 
@@ -107,7 +107,7 @@ It stays **exactly in sync** with **REAPER** transport and accepts the **same me
 
 ## Acknowledgements
 
-- Inspired by REAPER, Max/MSP, and open-source OSC tools.
+- Meant to be used with REAPER, Cycling '74 Max or any other open-source OSC tools.
 
 ## License
 
