@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",              // JavaScript output version, fine for Node 18+
+    "module": "NodeNext",            // Use ES Modules (with "type": "module" in package.json)
+    "moduleResolution": "NodeNext",  // Resolve imports the same way Node.js does for ESM
+    "outDir": "dist",                // Where compiled .js files will be placed
+    "rootDir": ".",                  // Root directory of TypeScript source files
+    "strict": true,                   // Enable all strict type-checking options
+    "esModuleInterop": true,          // Easier import of CommonJS modules
+    "skipLibCheck": true,             // Skip type checking of .d.ts files in node_modules
+    "forceConsistentCasingInFileNames": true // Enforce consistent casing in file names
+  },
+  "include": ["server.ts", "types/**/*.d.ts"]
+}
