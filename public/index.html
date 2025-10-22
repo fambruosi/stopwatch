@@ -5,52 +5,48 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>OSC Stopwatch</title>
   <style>
-    :root { --fontSize: 16vw; }
+    /* === Customize these (we'll refine in step 3) === */
+    :root{
+      --bg:#1c1c1c;           /* background */  /* from style.css */ 
+      --fg:#c1c1c1;           /* text */        /* from style.css */
+      --fontFamily:sans-serif;
+      --fontSize:20vw;        /* from #timerLabel 20vw */
+    }
     * { box-sizing: border-box; }
-    html, body { margin:0; height:100%; background:#000; color:#fff; font-family: ui-monospace, Menlo, Consolas, "SF Mono", monospace; }
-    .toolbar { position: fixed; top:.75rem; left:.75rem; right:.75rem; display:flex; gap:.5rem; }
-    button { background:#111; color:#fff; border:1px solid #444; border-radius:.5rem; padding:.45rem .8rem; font-size:1rem; cursor:pointer; }
+    html, body {
+      margin:0; height:100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--fontFamily);
+    }
+    .toolbar {
+      position: fixed; top:.75rem; left:.75rem; right:.75rem;
+      display:flex; gap:.5rem;
+    }
+    button{
+      background:#c1c1c1; color:#1c1c1c; border:none;
+      border-radius:10px; padding:15px; font-size:1.1rem; cursor:pointer;
+    }
+    button:active { transform: translateY(1px); }
     .wrap { height:100%; display:grid; place-items:center; text-align:center; }
     .time { font-weight:800; font-size:var(--fontSize); line-height:1; letter-spacing:.03em; }
     @media (max-width:900px){ :root{ --fontSize:22vw; } }
-    /* Gate di accesso (inserimento nome) */
-    .gate { position: fixed; inset:0; background:#000; display:flex; align-items:center; justify-content:center; }
-    .panel { width:min(92vw, 520px); background:#0d0d0d; border:1px solid #333; border-radius:12px; padding:18px; box-shadow:0 8px 24px rgba(0,0,0,.45); }
-    .panel h1 { margin:0 0 .5rem 0; font-size:1.1rem; color:#ddd; font-weight:700; }
-    .row { display:flex; gap:.5rem; }
-    .row input { flex:1; background:#111; color:#fff; border:1px solid #444; border-radius:.5rem; padding:.6rem .75rem; font-size:1rem; }
   </style>
 </head>
 <body>
-  <!-- Controlli font -->
-  <div class="toolbar">
-    <button id="dec">A–</button>
-    <button id="inc">A+</button>
+  <div class="toolbar" aria-label="zoom controls">
+    <button id="dec" aria-label="decrease">−</button>
+    <button id="inc" aria-label="increase">+</button>
   </div>
 
-  <!-- Display tempo -->
   <div class="wrap"><div class="time" id="time">00:00:00</div></div>
-
-  <!-- Gate: chiede nome prima di sbloccare la pagina -->
-  <div class="gate" id="gate">
-    <div class="panel">
-      <h1>Inserisci il tuo nome/strumento</h1>
-      <div class="row">
-        <input id="name" type="text" placeholder="Es. Giulia – Soprano Sax" autocomplete="off" />
-        <button id="enter">Entra</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     const el = document.getElementById("time");
     const dec = document.getElementById("dec");
     const inc = document.getElementById("inc");
-    const gate = document.getElementById("gate");
-    const nameInput = document.getElementById("name");
-    const enterBtn = document.getElementById("enter");
 
-    // Font size con persistenza locale (6–40vw)
+    // Font size persistence (6–40vw)
     const key = "oscStopwatch.fontSize";
     const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
     function getFS(){
@@ -63,28 +59,16 @@
     dec.onclick = ()=> setFS(clamp(getFS()-2, 6, 40));
     inc.onclick = ()=> setFS(clamp(getFS()+2, 6, 40));
 
-    // WebSocket → riceve {type:"time", value:"hh:mm:ss"} e {type:"state", value:"play|stop|pause"}
+    // WebSocket (no "hello" handshake)
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}`);
-
     ws.onmessage = (ev)=>{
       try{
         const msg = JSON.parse(ev.data);
         if (msg.type === "time" && typeof msg.value === "string") el.textContent = msg.value;
-        // Se vuoi, potresti cambiare colore in base a msg.type==="state"
+        // msg.type === "state" is available if you want to style by play/pause/stop
       }catch(e){}
     };
-
-    // Invia "hello" con nome → il server logga "{name (IP)} connected."
-    function submitName(){
-      const name = (nameInput.value || "").trim();
-      if (!name) { nameInput.focus(); return; }
-      ws.send(JSON.stringify({ type:"hello", name }));
-      gate.style.display = "none";
-    }
-    enterBtn.onclick = submitName;
-    nameInput.addEventListener("keydown", e=>{ if(e.key==="Enter") submitName(); });
-    nameInput.focus();
   </script>
 </body>
 </html>

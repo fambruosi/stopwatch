@@ -8,6 +8,7 @@ import express from "express";
 import WebSocket, { WebSocketServer } from "ws";
 import osc, { UDPPort } from "osc";
 import dotenv from "dotenv";
+import os from "node:os";
 dotenv.config();
 
 /* ==== Config from .env (with sensible defaults) ===================== */
@@ -53,25 +54,38 @@ function clientIp(req: http.IncomingMessage): string {
 }
 
 // Handle new WebSocket connections
-wss.on("connection", (wsRaw, req) => {
-  const ws = wsRaw as NamedWS;
-  const ip = clientIp(req);
+// wss.on("connection", (wsRaw, req) => {
+//   const ws = wsRaw as NamedWS;
+//   const ip = clientIp(req);
 
-  ws.on("message", (buf) => {
-    try {
-      const msg = JSON.parse(buf.toString());
-      // Wait for "hello" message with client name before logging
-      if (msg?.type === "hello" && typeof msg?.name === "string" && msg.name.trim()) {
-        ws.name = msg.name.trim();
-        console.log(`${ws.name} (${ip}) connected.`);
-        // Send initial state and time to the new client
-        ws.send(JSON.stringify({ type: "state", value: transport } satisfies Outgoing));
-        ws.send(JSON.stringify({ type: "time",  value: lastHHMMSS } satisfies Outgoing));
-      }
-    } catch {
-      /* ignore malformed messages */
-    }
-  });
+//   ws.on("message", (buf) => {
+//     try {
+//       const msg = JSON.parse(buf.toString());
+//       // Wait for "hello" message with client name before logging
+//       if (msg?.type === "hello" && typeof msg?.name === "string" && msg.name.trim()) {
+//         ws.name = msg.name.trim();
+//         console.log(`${ws.name} (${ip}) connected.`);
+//         // Send initial state and time to the new client
+//         ws.send(JSON.stringify({ type: "state", value: transport } satisfies Outgoing));
+//         ws.send(JSON.stringify({ type: "time",  value: lastHHMMSS } satisfies Outgoing));
+//       }
+//     } catch {
+//       /* ignore malformed messages */
+//     }
+//   });
+// });
+
+wss.on("connection", (wsRaw, req) => {
+  const ws = wsRaw as WebSocket;
+  const ip = clientIp(req);
+  console.log(`${ip} connected.`);
+
+  // send current state/time immediately
+  ws.send(JSON.stringify({ type: "state", value: transport }));
+  ws.send(JSON.stringify({ type: "time",  value: lastHHMMSS }));
+
+  // (facoltativo) puoi comunque ascoltare messaggi in futuro
+  ws.on("message", () => { /* not used now */ });
 });
 
 /* ==== Helpers ======================================================= */
@@ -117,6 +131,19 @@ function isOn(v: unknown): boolean {
   if (typeof v === "boolean") return v;
   if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
   return true; // no argument => treat as ON
+}
+
+//find local IPv4 addresses
+function localIPv4List(): string[] {
+  const nets = os.networkInterfaces();
+  const out: string[] = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      const isV4 = (net as any).family === "IPv4" || (net as any).family === 4;
+      if (isV4 && !net.internal) out.push(net.address);
+    }
+  }
+  return out.length ? out : ["127.0.0.1"];
 }
 
 /* ==== OSC (UDP) ===================================================== */
@@ -196,5 +223,8 @@ udpPort.open();
 /* ==== Start HTTP: print "listening on port: X" ====================== */
 // Start HTTP server and log port
 server.listen(HTTP_PORT, () => {
-  console.log(`listening on port: ${HTTP_PORT}`);
+  const ips = localIPv4List();
+  for (const ip of ips) {
+    console.log(`connect to: http://${ip}:${HTTP_PORT}`);
+  }
 });
