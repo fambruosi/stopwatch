@@ -24,6 +24,11 @@ const TRUST_PROXY   = String(process.env.TRUST_PROXY   || "false").toLowerCase()
 const app = express();
 if (TRUST_PROXY) app.set("trust proxy", true);
 app.use(express.static(path.join(process.cwd(), "public")));
+app.get("/config.json", (_req, res) => {
+  res.json({
+    title: process.env.STOPWATCH_TITLE || ""
+  });
+});
 const server = http.createServer(app);
 
 // Type definitions for transport state and outgoing messages
@@ -74,6 +79,7 @@ function clientIp(req: http.IncomingMessage): string {
 //     }
 //   });
 // });
+// ...resto degli import e codice...
 
 wss.on("connection", (wsRaw, req) => {
   const ws = wsRaw as WebSocket;
@@ -84,8 +90,13 @@ wss.on("connection", (wsRaw, req) => {
   ws.send(JSON.stringify({ type: "state", value: transport }));
   ws.send(JSON.stringify({ type: "time",  value: lastHHMMSS }));
 
-  // (facoltativo) puoi comunque ascoltare messaggi in futuro
-  ws.on("message", () => { /* not used now */ });
+  // print number of connected users
+  console.log(`Connected user: ${wss.clients.size}`);
+
+  // update counter on disconnect
+  ws.on("close", () => {
+    console.log(`Connected user: ${wss.clients.size}`);
+  });
 });
 
 /* ==== Helpers ======================================================= */

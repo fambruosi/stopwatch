@@ -5,32 +5,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>OSC Stopwatch</title>
   <style>
-    /* === Customize these (we'll refine in step 3) === */
     :root{
-      --bg:#1c1c1c;           /* background */  /* from style.css */ 
-      --fg:#c1c1c1;           /* text */        /* from style.css */
+      --bg:#1c1c1c;        /* sfondo */
+      --fg:#c1c1c1;        /* testo  */
       --fontFamily:sans-serif;
-      --fontSize:20vw;        /* from #timerLabel 20vw */
+      --fontSize:20vw;     /* grandezza cifre iniziale */
     }
-    * { box-sizing: border-box; }
-    html, body {
-      margin:0; height:100%;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: var(--fontFamily);
-    }
-    .toolbar {
-      position: fixed; top:.75rem; left:.75rem; right:.75rem;
-      display:flex; gap:.5rem;
-    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:var(--fontFamily); }
+    .toolbar{ position:fixed; top:.75rem; left:.75rem; right:.75rem; display:flex; gap:.5rem; }
     button{
       background:#c1c1c1; color:#1c1c1c; border:none;
       border-radius:10px; padding:15px; font-size:1.1rem; cursor:pointer;
     }
-    button:active { transform: translateY(1px); }
-    .wrap { height:100%; display:grid; place-items:center; text-align:center; }
-    .time { font-weight:800; font-size:var(--fontSize); line-height:1; letter-spacing:.03em; }
-    @media (max-width:900px){ :root{ --fontSize:22vw; } }
+    button:active{ transform:translateY(1px); }
+    .title{
+      position:fixed; top:3.5rem; left:50%; transform:translateX(-50%);
+      text-align:center; font-weight:700; line-height:1.2;
+      font-size:clamp(16px, 4vw, 42px); color:var(--fg); opacity:.95;
+      padding:0 .75rem;
+    }
+    .wrap{ height:100%; display:grid; place-items:center; text-align:center; }
+    .time{ font-weight:800; font-size:var(--fontSize); line-height:1; letter-spacing:.03em; }
   </style>
 </head>
 <body>
@@ -39,35 +35,44 @@
     <button id="inc" aria-label="increase">+</button>
   </div>
 
+  <!-- Title -->
+  <div class="title" id="title"></div>
+
   <div class="wrap"><div class="time" id="time">00:00:00</div></div>
 
   <script>
     const el = document.getElementById("time");
     const dec = document.getElementById("dec");
     const inc = document.getElementById("inc");
+    const titleEl = document.getElementById("title");
 
     // Font size persistence (6–40vw)
-    const key = "oscStopwatch.fontSize";
-    const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
-    function getFS(){
-      const css = getComputedStyle(document.documentElement).getPropertyValue("--fontSize").trim().replace("vw","");
-      const stored = localStorage.getItem(key);
-      return stored ? Number(stored) : Number(css||16);
-    }
-    function setFS(vw){ document.documentElement.style.setProperty("--fontSize", vw+"vw"); localStorage.setItem(key, vw); }
-    setFS(clamp(getFS(), 6, 40));
-    dec.onclick = ()=> setFS(clamp(getFS()-2, 6, 40));
-    inc.onclick = ()=> setFS(clamp(getFS()+2, 6, 40));
+    const key="oscStopwatch.fontSize", clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+    function getFS(){ const css=getComputedStyle(document.documentElement).getPropertyValue("--fontSize").trim().replace("vw",""); const stored=localStorage.getItem(key); return stored?Number(stored):Number(css||20); }
+    function setFS(vw){ document.documentElement.style.setProperty("--fontSize",vw+"vw"); localStorage.setItem(key,vw); }
+    setFS(clamp(getFS(),6,40));
+    dec.onclick=()=>setFS(clamp(getFS()-2,6,40));
+    inc.onclick=()=>setFS(clamp(getFS()+2,6,40));
 
-    // WebSocket (no "hello" handshake)
+    // Load title from /config.json
+    fetch("/config.json").then(r=>r.json()).then(cfg=>{
+      const t = (cfg?.title || "").toString();
+      if (t) {
+        titleEl.textContent = t;
+        document.title = t + " · OSC Stopwatch";
+      } else {
+        titleEl.style.display = "none";
+      }
+    }).catch(()=>{ titleEl.style.display="none"; });
+
+    // WebSocket
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}`);
     ws.onmessage = (ev)=>{
       try{
         const msg = JSON.parse(ev.data);
         if (msg.type === "time" && typeof msg.value === "string") el.textContent = msg.value;
-        // msg.type === "state" is available if you want to style by play/pause/stop
-      }catch(e){}
+      }catch{}
     };
   </script>
 </body>
